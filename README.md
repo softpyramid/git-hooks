@@ -1,49 +1,62 @@
 # Git Activity Tracking Hook
 
-A Git hook implementation that automatically tracks developer activity and sends it to a centralized monitoring system.
+A cross-platform Git hook implementation that automatically tracks developer activity and sends it to a centralized monitoring system.
 
 ## Overview
 
-This repository contains a post-commit hook that tracks developer activities and reports them to a Laravel-based API endpoint. The hook captures essential information about commits and pushes them to a centralized monitoring system.
+This repository contains a post-commit hook that tracks developer activities across Windows, macOS, and Linux platforms. The hook captures essential information about commits and reports them to a Laravel-based API endpoint.
+
+## Requirements
+
+- Git (any recent version)
+- Either curl or wget installed
+- Bash shell (Git Bash on Windows)
 
 ## Setup
 
-1. Ensure the post-commit hook is executable:
+1. Copy the post-commit hook to your repository's hooks directory:
+   ```bash
+   cp post-commit .git/hooks/
+   ```
+
+2. Set proper permissions (Unix/Linux/macOS):
    ```bash
    chmod +x .git/hooks/post-commit
    ```
 
-2. Configure your MIS credentials in the post-commit hook:
+3. Configure your MIS credentials in the post-commit hook:
    ```bash
    AUTH_USER="your.email@softpyramid.com"
    AUTH_PASS="your-mis-password"
    ```
 
+## Platform Compatibility
+
+The hook works across:
+- Windows (including Git Bash, Cygwin, MSYS2)
+- macOS
+- Linux
+- Unix-like systems
+
 ## Tracked Information
 
-The hook tracks the following information:
+The hook tracks:
 - Developer name and email
 - Repository URL
 - Branch name
 - Commit URL
 - Commit message
 - Activity type
-
-## Requirements
-
-- Git
-- curl
-- jq (for JSON processing)
+- Platform information
 
 ## API Endpoint
 
 The hook sends data to:
-
 https://mis.softpyramid.com.pk/api/log-activity
 
 ## Using with Husky
 
-1. Install Husky in your project:
+1. Install Husky:
    ```bash
    npm install husky --save-dev
    ```
@@ -53,21 +66,28 @@ https://mis.softpyramid.com.pk/api/log-activity
    npx husky install
    ```
 
-3. Add the post-commit hook using Husky:
+3. Add the post-commit hook:
    ```bash
    npx husky add .husky/post-commit "bash post-commit"
    ```
 
-4. Make sure the post-commit script is in your project root and is executable:
-   ```bash
-   chmod +x post-commit
-   ```
+## Troubleshooting
+
+### Windows Users
+- Ensure Git Bash is installed
+- Use forward slashes (/) in paths
+- Check if curl/wget is accessible
+
+### Unix/Linux/macOS Users
+- Verify execute permissions
+- Ensure bash is available at /usr/bin/env bash
 
 ## Security
 
 - Uses Basic Authentication
 - Requires valid MIS credentials
 - Communicates over HTTPS
+- Handles sensitive data safely
 
 ## Support
 

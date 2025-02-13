@@ -1,14 +1,33 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 # ==============================================================
 # File: post-commit
-# Description: Git hook to track developer activity on commit
+# Description: Cross-platform git hook to track developer activity
 # Developed by: SOFT PYRAMID LLC
 # Created on: 2025-02-11
 # ==============================================================
 
-set -e  # Exit script immediately if any command fails
-set -u  # Treat unset variables as an error
+# Detect OS
+case "$(uname -s)" in
+    CYGWIN*|MINGW*|MSYS*|Windows*)
+        OS='Windows'
+        ;;
+    Darwin*)
+        OS='Mac'
+        ;;
+    *)
+        OS='Linux'
+        ;;
+esac
+
+# Use appropriate path separator
+PATH_SEP="/"
+if [ "$OS" = "Windows" ]; then
+    PATH_SEP="\\"
+fi
+
+# Ensure git is available
+command -v git >/dev/null 2>&1 || { echo "Git is not installed. Aborting."; exit 1; }
 
 # Base URL for the Laravel API
 BASE_URL="https://mis.softpyramid.com.pk/api"
@@ -17,25 +36,42 @@ BASE_URL="https://mis.softpyramid.com.pk/api"
 AUTH_USER="enter your mis email here"
 AUTH_PASS="enter your mis password here"
 
-# Get developer details
-developer_name=$(git config user.name)
-developer_email=$(git config user.email)
-repo_url=$(git remote get-url origin)
-branch_name=$(git rev-parse --abbrev-ref HEAD)
-commit_hash=$(git rev-parse HEAD)
-commit_url="$repo_url/commit/$commit_hash"
-commit_message=$(git log -1 --pretty=%B | jq -R -s .)  # Format commit message as valid JSON string
+# Get developer details (with error handling)
+developer_name=$(git config user.name) || exit 1
+developer_email=$(git config user.email) || exit 1
+repo_url=$(git remote get-url origin 2>/dev/null || echo "local repository")
+branch_name=$(git symbolic-ref --short HEAD 2>/dev/null || echo "detached HEAD")
+commit_hash=$(git rev-parse HEAD) || exit 1
 
-# Send data to Laravel API with Basic Authentication and output response only
-curl -s -X POST "$BASE_URL/log-activity" \
-     -u "$AUTH_USER:$AUTH_PASS" \
-     -H "Content-Type: application/json" \
-     -d "{
-         \"developer_name\": \"$developer_name\",
-         \"developer_email\": \"$developer_email\",
-         \"repo_url\": \"$repo_url\",
-         \"branch\": \"$branch_name\",
-         \"commit_url\": \"$commit_url\",
-         \"commit_message\": $commit_message,
-         \"activity_type\": \"push\"
-     }"
+# Handle Windows-style URLs
+repo_url=${repo_url//\\/$PATH_SEP}
+commit_url="$repo_url/commit/$commit_hash"
+
+# Get commit message with proper escaping for all platforms
+commit_message=$(git log -1 --pretty=%B | sed 's/"/\\"/g' | tr '\n' ' ' | sed 's/\\/\\\\/g')
+
+# Detect curl or wget
+CURL_CMD="curl -s"
+if ! command -v curl >/dev/null 2>&1; then
+    if command -v wget >/dev/null 2>&1; then
+        CURL_CMD="wget -q -O- --method=POST"
+    else
+        echo "Neither curl nor wget is installed. Aborting."
+        exit 1
+    fi
+fi
+
+# Send data to Laravel API
+$CURL_CMD -X POST "$BASE_URL/log-activity" \
+    -u "$AUTH_USER:$AUTH_PASS" \
+    -H "Content-Type: application/json" \
+    -d "{
+        \"developer_name\": \"$developer_name\",
+        \"developer_email\": \"$developer_email\",
+        \"repo_url\": \"$repo_url\",
+        \"branch\": \"$branch_name\",
+        \"commit_url\": \"$commit_url\",
+        \"commit_message\": \"$commit_message\",
+        \"activity_type\": \"push\",
+        \"platform\": \"$OS\"
+    }" || echo "Failed to send activity log"
