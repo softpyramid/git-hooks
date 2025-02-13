@@ -38,3 +38,40 @@ The hook tracks the following information:
 ## API Endpoint
 
 The hook sends data to:
+
+https://mis.softpyramid.com.pk/api/log-activity
+
+## Using with Husky
+
+1. Install Husky in your project:
+   ```bash
+   npm install husky --save-dev
+   ```
+
+2. Initialize Husky:
+   ```bash
+   npx husky install
+   ```
+
+3. Add the post-commit hook using Husky:
+   ```bash
+   npx husky add .husky/post-commit "bash post-commit"
+   ```
+
+4. Make sure the post-commit script is in your project root and is executable:
+   ```bash
+   chmod +x post-commit
+   ```
+
+## Security
+
+- Uses Basic Authentication
+- Requires valid MIS credentials
+- Communicates over HTTPS
+
+## Support
+
+For any issues or questions, please contact SOFT PYRAMID LLC.
+
+---
+Developed by SOFT PYRAMID LLC
